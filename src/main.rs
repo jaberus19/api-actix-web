@@ -1,44 +1,26 @@
-use actix_web::{get, web, App, HttpServer, Responder, HttpResponse};
-use serde::{Deserialize, Serialize};
+use actix_web::{web, App, HttpServer, Responder, HttpRequest, Error};
+use actix_ws::Message;
+use std::sync::Arc;
+use tokio::sync::Mutex;
 
-// Esta estructura recibe los datos de la URL (?home=...&away=...)
-#[derive(Deserialize)]
-struct Info {
-    home: String,
-    away: String,
-}
+mod server;
+mod models;
+mod session;
 
-// Esta estructura se convertirá en el JSON de respuesta
-#[derive(Serialize)]
-struct PredictionResponse {
-    home_team: String,
-    home_prob: String,
-    away_team: String,
-    away_prob: String,
-}
-
-#[get("/predictions")]
-async fn predict(info: web::Query<Info>) -> impl Responder {
-    // Aquí iría tu lógica real o IA. Por ahora, simularemos probabilidades.
-    let home_prob = 44.6;
-    let away_prob = 55.4;
-
-    let response = PredictionResponse {
-        home_team: info.home.clone(),
-        home_prob: format!("{}%", home_prob),
-        away_team: info.away.clone(),
-        away_prob: format!("{}%", away_prob),
-    };
-
-    HttpResponse::Ok().json(response) // .json() se encarga de todo el trabajo
-}
+use crate::server::WashServer;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    println!("🚀 Servidor en http://127.0.0.1:8080");
-    
-    HttpServer::new(|| {
-        App::new().service(predict)
+    // 1. On crée l'instance du serveur (le Lobby)
+    // On l'enveloppe dans un Mutex pour qu'il soit modifiable en toute sécurité
+    let wash_server = web::Data::new(Mutex::new(WashServer::new()));
+
+    println!("🚀 Serveur d'autolavage démarré sur http://127.0.0.1:8080");
+
+    HttpServer::new(move || {
+        App::new()
+            .app_data(wash_server.clone()) // On partage le serveur avec toutes les routes
+            .route("/ws", web::get().to(routes::ws_index)) // La route de connexion
     })
     .bind(("127.0.0.1", 8080))?
     .run()
