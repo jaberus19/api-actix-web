@@ -32,6 +32,9 @@ pub enum ClientCommand {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "type", content = "payload")]
 pub enum WsMessage {
+
+    Chat { user: String, text: String },
+    
     // Quand le superviseur change l'état d'un lavage (En espera -> En proceso)
     #[serde(rename = "WASH_STATUS_UPDATE")]
     WashStatusUpdate {

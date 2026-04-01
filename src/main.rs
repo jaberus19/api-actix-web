@@ -1,28 +1,37 @@
-use actix_web::{web, App, HttpServer, Responder, HttpRequest, Error};
-use actix_ws::Message;
-use std::sync::Arc;
-use tokio::sync::Mutex;
-
-mod server;
 mod models;
+mod server;
 mod session;
 
+use std::sync::Arc;
+use tokio::sync::Mutex;
 use crate::server::WashServer;
+use crate::models::{UserRole, WsMessage};
+
 
 #[actix_web::main]
-async fn main() -> std::io::Result<()> {
-    // 1. On crée l'instance du serveur (le Lobby)
-    // On l'enveloppe dans un Mutex pour qu'il soit modifiable en toute sécurité
-    let wash_server = web::Data::new(Mutex::new(WashServer::new()));
+async fn main()  {
+   let server = Arc::new(Mutex::new(WashServer::new()));
 
-    println!("🚀 Serveur d'autolavage démarré sur http://127.0.0.1:8080");
+   let srv_clone1 = Arc::clone(&server);
+    tokio::spawn(async move {
+        session::start_session(1, UserRole::Supervisor, srv_clone1).await;
+    });
 
-    HttpServer::new(move || {
-        App::new()
-            .app_data(wash_server.clone()) // On partage le serveur avec toutes les routes
-            .route("/ws", web::get().to(routes::ws_index)) // La route de connexion
-    })
-    .bind(("127.0.0.1", 8080))?
-    .run()
-    .await
+    let srv_clone2 = Arc::clone(&server);
+    tokio::spawn(async move {
+        session::start_session(2, UserRole::Client, srv_clone2).await;
+    });
+
+    tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+
+    println!("--- BROADCAST TEST ---");
+    let test_msg = WsMessage::Chat { 
+        user: "System".to_string(), 
+        text: "Welcome to the Car Wash service!".to_string() 
+    };
+    
+    let srv_lock = server.lock().await;
+    srv_lock.broadcast(test_msg);
+
+    tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
 }
