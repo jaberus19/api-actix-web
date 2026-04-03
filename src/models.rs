@@ -1,65 +1,38 @@
-use serde::{Deserialize, Serialize};
+use serde::{Serialize, Deserialize};
+use sqlx::FromRow;
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub enum UserRole {
-    Admin,
-    Supervisor,
-    Client,
+// --- LES ENUMS ---
+#[derive(Debug, Serialize, Deserialize, sqlx::Type)]
+#[sqlx(type_name = "washing_status")]
+pub enum WashingStatus {
+    #[sqlx(rename = "En espera")] EnEspera,
+    #[sqlx(rename = "En proceso")] EnProceso,
+    #[sqlx(rename = "Terminado")] Terminado,
+    #[sqlx(rename = "Entregado")] Entregado,
+    #[sqlx(rename = "Cancelado")] Cancelado,
 }
 
-// Dans ton fichier messages.rs (avec Serde)
-#[derive(Deserialize)]
-#[serde(tag = "cmd", content = "data")]
-enum SupervisorCommand {
-    AssignEmployee { vehicle_id: i32, employee_id: i32 },
-    ChangeStatus { vehicle_id: i32, new_status: String },
-}
-/*// 2. NOUVEAU : Les commandes de l'Admin (ex: gestion des prix ou stocks)
-#[derive(Deserialize, Debug)]
-#[serde(tag = "cmd", content = "data")]
-pub enum AdminCommand {
-    UpdatePrice { service_id: i32, new_price: f64 },
-    AddStock { product_id: i32, quantity: f64 },
-}
+// --- LES TABLES (Mises à jour avec les vrais noms) ---
 
-// 3. NOUVEAU : Les commandes du Client (ex: demander de l'aide ou annuler)
-#[derive(Deserialize, Debug)]
-#[serde(tag = "cmd", content = "data")]
-pub enum ClientCommand {
-    RequestSupport { message: String },
-} */
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(tag = "type", content = "payload")]
-pub enum WsMessage {
-
-    Chat { user: String, text: String },
+#[derive(Debug, Serialize, Deserialize, FromRow)]
+pub struct Client {
+    // On utilise rename car PostgreSQL met souvent les noms en minuscules en interne
+    #[sqlx(rename = "clientid")] 
+    pub id: i32,
     
-    // Quand le superviseur change l'état d'un lavage (En espera -> En proceso)
-    #[serde(rename = "WASH_STATUS_UPDATE")]
-    WashStatusUpdate {
-        sale_id: i32,
-        plate: String,
-        new_status: String, // ex: "En proceso"
-    },
+    pub names: String,      // Doit être identique au SQL (names avec un 's')
+    pub lastnames: String,  // Nouveau champ obligatoire
+    
+    #[sqlx(rename = "numberphone")]
+    pub phone: Option<String>, // Option car numberPhone peut être NULL dans ta DB
+    
+    pub ci: String,         // Nouveau champ obligatoire
+}
 
-    // Quand le stock d'un produit est critique
-    #[serde(rename = "STOCK_ALERT")]
-    StockAlert {
-        product_name: String,
-        current_stock: f64,
-        min_stock: f64,
-    },
-
-    // Quand une nouvelle vente est créée (Notification pour le superviseur)
-    #[serde(rename = "NEW_SALE_CREATED")]
-    NewSale {
-        sale_id: i32,
-        vehicle_type: String,
-        services: Vec<String>,
-    },
-
-    // Un message simple pour tester la connexion (Ping/Pong)
-    #[serde(rename = "PING")]
-    Ping,
+#[derive(Debug, Serialize, Deserialize, FromRow)]
+pub struct Sale {
+    #[sqlx(rename = "saleid")] // Vérifie si c'est 'saleId' dans la table de ton ami
+    pub id: i32,
+    pub total: f64,
+    pub status: WashingStatus,
 }

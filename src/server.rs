@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use tokio::{sync::mpsc};
-use crate::{models::{UserRole, WsMessage}};
+use crate::{messages::{UserRole, WsMessage}};
 pub struct SessionInfo {
     pub tx : mpsc::UnboundedSender<WsMessage>,
     pub role: UserRole
