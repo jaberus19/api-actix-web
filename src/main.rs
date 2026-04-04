@@ -4,6 +4,7 @@ mod server;
 mod session;
 
 use std::sync::Arc;
+use tokio::time::{sleep, Duration};
 use tokio::sync::Mutex;
 use actix_web::{get, web, App, HttpResponse, HttpServer, Responder, HttpRequest};
 use sqlx::postgres::PgPoolOptions;
@@ -12,7 +13,7 @@ use std::env;
 
 // On importe ton serveur
 use server::WashServer;
-use messages::UserRole;
+use messages::{UserRole, WsMessage};
 
 #[get("/clients")]
 async fn get_clients(pool: web::Data<sqlx::PgPool>) -> impl Responder {
@@ -61,7 +62,65 @@ async fn main() -> std::io::Result<()> {
         .await
         .expect("Impossible de se connecter à la base de données");
 
-    println!("✅ Serveur prêt sur http://127.0.0.1:8080");
+    let srv_for_task = wash_server.clone();
+    let pool_for_task = pool.clone();
+
+    tokio::spawn(async move {
+        // HashSet pour ne pas envoyer 50 notifications pour la même vente
+        let mut sent_notifications = std::collections::HashSet::new();
+
+        loop {
+            println!("🔍 [DEBUG] Le robot vérifie la table sales..."); 
+
+            let result = sqlx::query_as::<_, models::Sale>(
+                "SELECT 
+                    saleid, 
+                    clientid, 
+                    vehicleid, 
+                    paymentmethodid, 
+                    statussale::TEXT,    -- On transforme l'ENUM en TEXT
+                    stateuswashing::TEXT, -- On transforme l'ENUM en TEXT
+                    saledate, 
+                    initial_state 
+                FROM sales 
+                WHERE stateuswashing = 'Terminado'"
+            )
+            .fetch_all(&pool_for_task)
+            .await;
+
+            match result {
+                Ok(sales) => {
+                    if sales.is_empty() {
+                        println!("ℹ️ [DEBUG] Rien de neuf.");
+                    } else {
+                        let server = srv_for_task.lock().await;
+                        for sale in sales {
+                            if !sent_notifications.contains(&sale.id) {
+                                // 1. Notification Terminal
+                                println!("📢 [SUCCÈS] Notification pour la vente ID: {}", sale.id);
+                                
+                                // 2. Notification WebSocket (Temps réel !)
+                                let msg = WsMessage::WashStatusUpdate {
+                                    sale_id: sale.id,
+                                    plate: "Véhicule".to_string(),
+                                    new_status: "Terminado".to_string(),
+                                };
+                                server.broadcast(msg);
+                                
+                                sent_notifications.insert(sale.id);
+                            }
+                        }
+                    }
+                },
+                Err(e) => println!("❌ [ERREUR] SQL : {:?}", e),
+            }
+
+            sleep(Duration::from_secs(5)).await;
+        }
+        
+    });
+
+    println!("✅ Serveur et surveillance DB activés !");
 
     HttpServer::new(move || {
         App::new()

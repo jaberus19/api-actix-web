@@ -1,5 +1,6 @@
 use serde::{Serialize, Deserialize};
 use sqlx::FromRow;
+use chrono::NaiveDateTime;
 
 // --- LES ENUMS ---
 #[derive(Debug, Serialize, Deserialize, sqlx::Type)]
@@ -29,10 +30,19 @@ pub struct Client {
     pub ci: String,         // Nouveau champ obligatoire
 }
 
-#[derive(Debug, Serialize, Deserialize, FromRow)]
+#[derive(Debug, FromRow, Serialize, Deserialize)]
 pub struct Sale {
-    #[sqlx(rename = "saleid")] // Vérifie si c'est 'saleId' dans la table de ton ami
+    #[sqlx(rename = "saleid")] 
+    #[serde(rename = "id")]
     pub id: i32,
-    pub total: f64,
-    pub status: WashingStatus,
+
+    pub clientid: i32,
+    pub vehicleid: i32,
+    pub paymentmethodid: i32,
+    // Note : Pour les types ENUM comme status_payments, 
+    // utilise String en Rust pour simplifier le test
+    pub statussale: String, 
+    pub stateuswashing: String,
+    pub saledate: NaiveDateTime,
+    pub initial_state: Option<String>, // Option car il peut être nul
 }
