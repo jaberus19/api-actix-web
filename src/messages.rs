@@ -59,6 +59,24 @@ pub enum WsMessage {
         services: Vec<String>,
     },
 
+    // Resumen para supervisor con conteo por estado en la tabla sales
+    #[serde(rename = "SUPERVISOR_SALES_SUMMARY")]
+    SupervisorSalesSummary {
+        pending: i64,
+        in_progress: i64,
+        finished: i64,
+        delivered: i64,
+        canceled: i64,
+    },
+
+    // Notificación de cambio de estado de una venta (tabla sales)
+    #[serde(rename = "SUPERVISOR_SALE_STATE_CHANGED")]
+    SupervisorSaleStateChanged {
+        sale_id: i32,
+        previous_status: String,
+        current_status: String,
+    },
+
     // Un message simple pour tester la connexion (Ping/Pong)
     #[serde(rename = "PING")]
     Ping,

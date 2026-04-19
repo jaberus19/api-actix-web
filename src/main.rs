@@ -8,6 +8,7 @@ use tokio::time::{sleep, Duration};
 use tokio::sync::Mutex;
 use actix_web::{get, web, App, HttpResponse, HttpServer, Responder, HttpRequest};
 use sqlx::postgres::PgPoolOptions;
+use std::collections::HashMap;
 use dotenvy::dotenv;
 use std::env;
 
@@ -68,6 +69,8 @@ async fn main() -> std::io::Result<()> {
     tokio::spawn(async move {
         // HashSet pour ne pas envoyer 50 notifications pour la même vente
         let mut sent_notifications = std::collections::HashSet::new();
+        let mut last_sale_statuses: HashMap<i32, String> = HashMap::new();
+        let mut last_summary: Option<(i64, i64, i64, i64, i64)> = None;
 
         loop {
             println!("🔍 [DEBUG] Le robot vérifie la table sales..."); 
@@ -82,19 +85,48 @@ async fn main() -> std::io::Result<()> {
                     stateuswashing::TEXT, -- On transforme l'ENUM en TEXT
                     saledate, 
                     initial_state 
-                FROM sales 
-                WHERE stateuswashing = 'Terminado'"
+                FROM sales"
             )
             .fetch_all(&pool_for_task)
             .await;
 
             match result {
                 Ok(sales) => {
+                    let mut current_statuses: HashMap<i32, String> = HashMap::new();
+
                     if sales.is_empty() {
                         println!("ℹ️ [DEBUG] Rien de neuf.");
                     } else {
                         let server = srv_for_task.lock().await;
+
+                        let mut pending = 0_i64;
+                        let mut in_progress = 0_i64;
+                        let mut finished = 0_i64;
+                        let mut delivered = 0_i64;
+                        let mut canceled = 0_i64;
+
                         for sale in sales {
+                            current_statuses.insert(sale.id, sale.stateuswashing.clone());
+
+                            match sale.stateuswashing.as_str() {
+                                "En espera" => pending += 1,
+                                "En proceso" => in_progress += 1,
+                                "Terminado" => finished += 1,
+                                "Entregado" => delivered += 1,
+                                "Cancelado" => canceled += 1,
+                                _ => {}
+                            }
+
+                            if let Some(previous) = last_sale_statuses.get(&sale.id) {
+                                if previous != &sale.stateuswashing {
+                                    server.broadcast(WsMessage::SupervisorSaleStateChanged {
+                                        sale_id: sale.id,
+                                        previous_status: previous.clone(),
+                                        current_status: sale.stateuswashing.clone(),
+                                    });
+                                }
+                            }
+
                             if !sent_notifications.contains(&sale.id) {
                                 // 1. Notification Terminal
                                 println!("📢 [SUCCÈS] Notification pour la vente ID: {}", sale.id);
@@ -103,14 +135,28 @@ async fn main() -> std::io::Result<()> {
                                 let msg = WsMessage::WashStatusUpdate {
                                     sale_id: sale.id,
                                     plate: "Véhicule".to_string(),
-                                    new_status: "Terminado".to_string(),
+                                    new_status: sale.stateuswashing.clone(),
                                 };
                                 server.broadcast(msg);
                                 
                                 sent_notifications.insert(sale.id);
                             }
                         }
+
+                        let summary = (pending, in_progress, finished, delivered, canceled);
+                        if last_summary != Some(summary) {
+                            server.broadcast(WsMessage::SupervisorSalesSummary {
+                                pending,
+                                in_progress,
+                                finished,
+                                delivered,
+                                canceled,
+                            });
+                            last_summary = Some(summary);
+                        }
                     }
+
+                    last_sale_statuses = current_statuses;
                 },
                 Err(e) => println!("❌ [ERREUR] SQL : {:?}", e),
             }

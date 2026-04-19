@@ -46,3 +46,9 @@ pub struct Sale {
     pub saledate: NaiveDateTime,
     pub initial_state: Option<String>, // Option car il peut être nul
 }
+
+#[derive(Debug, FromRow, Serialize, Deserialize)]
+pub struct SupervisorStatusCounter {
+    pub status: String,
+    pub total: i64,
+}
