@@ -1,6 +1,6 @@
 # Guía completa de pruebas WS — 4 Roles
 
-> **Roles del sistema:** `Admin` | `Supervisor` | `Cliente` | `Cajero`
+> **Roles del sistema:** `admin` | `supervisor` | `cliente` | `cajero`
 
 Esta guía cubre el flujo completo de pruebas para notificaciones en tiempo real
 de los **cuatro roles** del sistema: preparación, ejecución, resultados esperados

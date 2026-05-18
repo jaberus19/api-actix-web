@@ -447,3 +447,39 @@ function handleWsMessage(raw, userRole) {
 
 El backend consulta periódicamente la DB cada **5 segundos**. Por esto, las
 notificaciones de estado/resumen llegan en ventanas aproximadas de ese intervalo.
+
+## 7) Consideraciones importantes para el frontend
+
+### Conexiones WebSocket y reinicios del servidor
+Al reiniciar el backend (`cargo run`), las conexiones WebSocket del lado del cliente
+se quedan huérfanas aunque la pestaña del navegador siga pareciendo conectada.
+Es necesario reconectar manualmente recargando la página o estableciendo una nueva
+conexión WebSocket después de que el backend haya vuelto a estar disponible.
+
+### Rol Admin y sus notificaciones
+El rol Admin **solo recibe notificaciones de la capa estratégica**, como:
+- `STOCK_ALERT` (alertas de inventario crítico)
+- `EXPIRED_COMBOS_ALERT` y `EXPIRING_COMBOS_ALERT` (gestión de promociones)
+- `URGENT_PURCHASE` (facturas pendientes de pago a proveedores)
+
+El Admin **no recibe notificaciones operativas de ventas** como `WASH_STATUS_UPDATE`,
+`SUPERVISOR_SALES_SUMMARY` o `NEW_SALE_CREATED`, ya que estas están reservadas
+para los roles de Supervisor y Cajero.
+
+## 7) Consideraciones importantes para el frontend
+
+### Conexiones WebSocket y reinicios del servidor
+Al reiniciar el backend (`cargo run`), las conexiones WebSocket del lado del cliente
+se quedan huérfanas aunque la pestaña del navegador siga pareciendo conectada.
+Es necesario reconectar manualmente recargando la página o estableciendo una nueva
+conexión WebSocket después de que el backend haya vuelto a estar disponible.
+
+### Rol Admin y sus notificaciones
+El rol Admin **solo recibe notificaciones de la capa estratégica**, como:
+- `STOCK_ALERT` (alertas de inventario crítico)
+- `EXPIRED_COMBOS_ALERT` y `EXPIRING_COMBOS_ALERT` (gestión de promociones)
+- `URGENT_PURCHASE` (facturas pendientes de pago a proveedores)
+
+El Admin **no recibe notificaciones operativas de ventas** como `WASH_STATUS_UPDATE`,
+`SUPERVISOR_SALES_SUMMARY` o `NEW_SALE_CREATED`, ya que estas están reservadas
+para los roles de Supervisor y Cajero.
