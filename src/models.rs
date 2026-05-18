@@ -3,14 +3,32 @@ use sqlx::FromRow;
 use chrono::NaiveDateTime;
 
 // --- LES ENUMS ---
-#[derive(Debug, Serialize, Deserialize, sqlx::Type)]
+#[derive(Debug, Serialize, Deserialize, sqlx::Type, Clone, PartialEq)]
 #[sqlx(type_name = "washing_status")]
 pub enum WashingStatus {
-    #[sqlx(rename = "En espera")] EnEspera,
-    #[sqlx(rename = "En proceso")] EnProceso,
-    #[sqlx(rename = "Terminado")] Terminado,
-    #[sqlx(rename = "Entregado")] Entregado,
-    #[sqlx(rename = "Cancelado")] Cancelado,
+    #[sqlx(rename = "W")] EnEspera,
+    #[sqlx(rename = "I")] EnProceso,
+    #[sqlx(rename = "D")] Completado,
+    #[sqlx(rename = "C")] Cancelado,
+}
+
+impl WashingStatus {
+    pub fn display(&self) -> &'static str {
+        match self {
+            WashingStatus::EnEspera => "En espera",
+            WashingStatus::EnProceso => "En proceso",
+            WashingStatus::Completado => "Completado",
+            WashingStatus::Cancelado => "Cancelado",
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, sqlx::Type)]
+#[sqlx(type_name = "status_payments")]
+pub enum StatusPayments {
+    #[sqlx(rename = "W")] Waiting,
+    #[sqlx(rename = "P")] Paid,
+    #[sqlx(rename = "C")] Cancelled,
 }
 
 // --- LES TABLES (Mises à jour avec les vrais noms) ---
@@ -30,7 +48,7 @@ pub struct Client {
     pub ci: String,         // Nouveau champ obligatoire
 }
 
-#[derive(Debug, FromRow, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, FromRow)]
 pub struct Sale {
     #[sqlx(rename = "saleid")] 
     #[serde(rename = "id")]
@@ -39,10 +57,8 @@ pub struct Sale {
     pub clientid: i32,
     pub vehicleid: i32,
     pub paymentmethodid: i32,
-    // Note : Pour les types ENUM comme status_payments, 
-    // utilise String en Rust pour simplifier le test
-    pub statussale: String, 
-    pub stateuswashing: String,
+    pub statussale: StatusPayments, 
+    pub stateuswashing: WashingStatus,
     pub saledate: NaiveDateTime,
     pub initial_state: Option<String>, // Option car il peut être nul
 }
