@@ -53,6 +53,35 @@ CREATE TABLE IF NOT EXISTS product_usage (
     "createdAt" TIMESTAMP DEFAULT NOW ()
 );
 
+-- 1. Crear tabla types_vehicles si no existe
+CREATE TABLE IF NOT EXISTS types_vehicles (
+    "typeVehicleId" SERIAL PRIMARY KEY,
+    "name" VARCHAR NOT NULL
+);
+
+-- 2. Crear tabla payments_methods si no existe
+CREATE TABLE IF NOT EXISTS payments_methods (
+    "paymentMethodId" SERIAL PRIMARY KEY,
+    "name" VARCHAR NOT NULL
+);
+
+-- 3. Crear tabla clients si no existe
+CREATE TABLE IF NOT EXISTS clients (
+    "clientId" SERIAL PRIMARY KEY,
+    "names" VARCHAR NOT NULL,
+    "lastnames" VARCHAR NOT NULL,
+    "numberPhone" VARCHAR,
+    "ci" VARCHAR NOT NULL
+);
+
+-- 4. Crear tabla vehicles si no existe
+CREATE TABLE IF NOT EXISTS vehicles (
+    "vehicleId" SERIAL PRIMARY KEY,
+    "typeVehicleId" INTEGER NOT NULL REFERENCES types_vehicles("typeVehicleId"),
+    "ownerId" INTEGER NOT NULL REFERENCES clients("clientId"),
+    "plate" VARCHAR NOT NULL
+);
+
 -- 1. Insertar Tipo de Vehículo base
 INSERT INTO types_vehicles ("typeVehicleId", "name")
 VALUES (1, 'Sedán')
@@ -89,11 +118,11 @@ INSERT INTO sales (
    "invoiceNumber"
 )
 VALUES
-   (90001, 1, 1, 1, 'W', 'W', NOW(), 'En espera', 'N-A-90001'),  
-   (90002, 1, 1, 1, 'W', 'I', NOW(), 'En espera', 'N-A-90002'),  
-   (90003, 1, 1, 1, 'P', 'D', NOW(), 'En espera', 'N-A-90003'),  
-   (90004, 1, 1, 1, 'P', 'C', NOW(), 'En espera', 'N-A-90004'),  
-   (90005, 1, 1, 1, 'C', 'C', NOW(), 'En espera', 'N-A-90005')   
+    (90001, 1, 1, 1, 'W', 'W', NOW(), 'En espera', 'N-A-90001'),  
+    (90002, 1, 1, 1, 'W', 'I', NOW(), 'En espera', 'N-A-90002'),  
+    (90003, 1, 1, 1, 'P', 'D', NOW(), 'En espera', 'N-A-90003'),  
+    (90004, 1, 1, 1, 'P', 'C', NOW(), 'En espera', 'N-A-90004'),  
+    (90005, 1, 1, 1, 'C', 'C', NOW(), 'En espera', 'N-A-90005')   
 ON CONFLICT ("saleId") DO UPDATE
 SET
    "statusWashing" = EXCLUDED."statusWashing",
