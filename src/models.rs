@@ -36,13 +36,13 @@ pub enum StatusPayments {
 #[derive(Debug, Serialize, Deserialize, FromRow)]
 pub struct Client {
     // On utilise rename car PostgreSQL met souvent les noms en minuscules en interne
-    #[sqlx(rename = "clientid")] 
+    #[sqlx(rename = "clientId")] 
     pub id: i32,
     
     pub names: String,      // Doit être identique au SQL (names avec un 's')
     pub lastnames: String,  // Nouveau champ obligatoire
     
-    #[sqlx(rename = "numberphone")]
+    #[sqlx(rename = "numberPhone")]
     pub phone: Option<String>, // Option car numberPhone peut être NULL dans ta DB
     
     pub ci: String,         // Nouveau champ obligatoire
@@ -50,17 +50,33 @@ pub struct Client {
 
 #[derive(Debug, Serialize, Deserialize, FromRow)]
 pub struct Sale {
-    #[sqlx(rename = "saleid")] 
+    #[sqlx(rename = "saleId")] 
     #[serde(rename = "id")]
     pub id: i32,
 
+    #[sqlx(rename = "clientId")] 
     pub clientid: i32,
+
+    #[sqlx(rename = "vehicleId")] 
     pub vehicleid: i32,
+
+    #[sqlx(rename = "paymentMethodId")] 
     pub paymentmethodid: i32,
+
+    #[sqlx(rename = "statusSale")] 
     pub statussale: StatusPayments, 
+
+    #[sqlx(rename = "statusWashing")] 
     pub stateuswashing: WashingStatus,
+
+    #[sqlx(rename = "saleDate")] 
     pub saledate: NaiveDateTime,
-    pub initial_state: Option<String>, // Option car il peut être nul
+
+    #[sqlx(rename = "initialState")] 
+    pub initial_state: Option<String>,
+
+    #[sqlx(rename = "invoiceNumber")] 
+    pub invoice_number: Option<String>,
 }
 
 #[derive(Debug, FromRow, Serialize, Deserialize)]

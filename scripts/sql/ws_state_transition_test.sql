@@ -16,47 +16,47 @@
 --              → Cliente:     VEHICLE_CANCELED
 --   90004 C→C  → sin cambios (mismo estado, no hay evento)
 --   statussale W→P (90001) → Cajero: pago confirmado
-
+--
 BEGIN;
 
 -- ── Transiciones de estado de lavado ─────────────────────────
 
 UPDATE sales
-SET stateuswashing = 'I'
-WHERE saleid = 90001;  -- De 'W' (En espera) a 'I' (En proceso)
-                        -- → Supervisor: SUPERVISOR_SALE_STATE_CHANGED
-                        -- → Cliente:     VEHICLE_IN_PROGRESS
+SET "statusWashing" = 'I'
+WHERE "saleId" = 90001;  -- De 'W' (En espera) a 'I' (En proceso)
+                         -- → Supervisor: SUPERVISOR_SALE_STATE_CHANGED
+                         -- → Cliente:     VEHICLE_IN_PROGRESS
 
 UPDATE sales
-SET stateuswashing = 'D'
-WHERE saleid = 90002;  -- De 'W' (En espera) a 'D' (Completado)
-                        -- → Supervisor: SUPERVISOR_SALE_STATE_CHANGED
-                        -- → Cliente:     VEHICLE_READY
+SET "statusWashing" = 'D'
+WHERE "saleId" = 90002;  -- De 'W' (En espera) a 'D' (Completado)
+                         -- → Supervisor: SUPERVISOR_SALE_STATE_CHANGED
+                         -- → Cliente:     VEHICLE_READY
 
 UPDATE sales
-SET stateuswashing = 'C'
-WHERE saleid = 90003;  -- De 'D' (Completado) a 'C' (Cancelado)
-                        -- → Supervisor: SUPERVISOR_SALE_STATE_CHANGED
-                        -- → Cliente:     VEHICLE_CANCELED
+SET "statusWashing" = 'C'
+WHERE "saleId" = 90003;  -- De 'D' (Completado) a 'C' (Cancelado)
+                         -- → Supervisor: SUPERVISOR_SALE_STATE_CHANGED
+                         -- → Cliente:     VEHICLE_CANCELED
 
 UPDATE sales
-SET stateuswashing = 'C'
-WHERE saleid = 90004;  -- Ya estaba en 'C', se mantiene (sin evento)
+SET "statusWashing" = 'C'
+WHERE "saleId" = 90004;  -- Ya estaba en 'C', se mantiene (sin evento)
 
 -- ── Simulación de pago recibido por Cajero ───────────────────
 -- Cambia statussale de 'W' (Waiting) a 'P' (Paid)
 -- → Cajero: deja de recibir PENDING_PAYMENT_REMINDER para esta venta
 UPDATE sales
-SET statussale = 'P'
-WHERE saleid = 90001;   -- Pago confirmado por Cajero
+SET "statusSale" = 'P'
+WHERE "saleId" = 90001;   -- Pago confirmado por Cajero
 
 COMMIT;
 
 -- Verificación rápida
-SELECT saleid, stateuswashing, statussale, saledate
+SELECT "saleId", "statusWashing", "statusSale", "saleDate", "invoiceNumber"
 FROM sales
-WHERE saleid BETWEEN 90001 AND 90005
-ORDER BY saleid;
+WHERE "saleId" BETWEEN 90001 AND 90005
+ORDER BY "saleId";
 
 -- ============================================================
 -- Eventos esperados después de ejecutar este script:
@@ -69,4 +69,3 @@ ORDER BY saleid;
 --               → VEHICLE_READY (90002)
 --               → VEHICLE_CANCELED (90003)
 --   Admin       → WASH_STATUS_UPDATE por cada cambio
-
